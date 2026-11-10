@@ -787,3 +787,141 @@ def main():
 
             if lost:
                 balls.remove(ball)
+
+        # ==================================
+        # LIVES
+        # ==================================
+        if not balls:
+
+            lives -= 1
+
+            if lives > 0:
+
+                balls.append(
+                    Ball(
+                        WIDTH // 2,
+                        HEIGHT - 100,
+                        min(300 + (level - 1) * 25, 520)
+                    )
+                )
+
+            else:
+                restart = gameOverScreen(score, level)
+
+                if not restart:
+                    running = False
+                    continue
+
+                # Complete restart
+                lives = INITIAL_LIVES
+                score = 0
+                level = 1
+
+                striker = Striker()
+
+                balls = [
+                    Ball(WIDTH // 2, HEIGHT // 2, 300)
+                ]
+
+                blocks = populateBlocks()
+
+                particles.clear()
+                powerups.clear()
+
+                expand_timer = 0
+                fire_timer = 0
+
+                direction = 0
+                paused = False
+
+                continue
+
+        # ==================================
+        # PARTICLES
+        # ==================================
+        for pt in particles[:]:
+
+            pt.update(dt)
+
+            if pt.life <= 0:
+                particles.remove(pt)
+
+        # ==================================
+        # DRAW BACKGROUND
+        # ==================================
+        screen.fill(BLACK)
+
+        for sx, sy, size in stars:
+
+            pygame.draw.circle(
+                screen,
+                STAR_COLOR,
+                (sx, sy),
+                size
+            )
+
+        # ==================================
+        # DRAW PARTICLES
+        # ==================================
+        for pt in particles:
+            pt.display()
+
+        # ==================================
+        # DRAW OBJECTS
+        # ==================================
+        for block in blocks:
+            block.display()
+
+        for p in powerups:
+            p.display()
+
+        for ball in balls:
+            ball.display()
+
+        striker.display()
+
+        # ==================================
+        # HUD
+        # ==================================
+        pygame.draw.line(
+            screen,
+            (120, 60, 180),
+            (0, HEIGHT - 38),
+            (WIDTH, HEIGHT - 38),
+            2
+        )
+
+        score_text = font.render(
+            f"Score: {score}", True, WHITE
+        )
+
+        lives_text = font.render(
+            f"♥ x {lives}/{MAX_LIVES}", True, HEART_RED
+        )
+
+        level_text = font.render(
+            f"Level: {level}", True, GOLD
+        )
+
+        screen.blit(score_text, (20, HEIGHT - 25))
+
+        screen.blit(
+            lives_text,
+            (WIDTH // 2 - 40, HEIGHT - 25)
+        )
+
+        screen.blit(
+            level_text,
+            (WIDTH - 100, HEIGHT - 25)
+        )
+
+        pygame.display.flip()
+
+    pygame.quit()
+
+
+# ==========================================
+# 11. RUN GAME
+# ==========================================
+if __name__ == "__main__":
+    main()
