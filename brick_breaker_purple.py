@@ -462,3 +462,328 @@ def main():
     while running:
 
         dt = min(clock.tick(FPS) / 1000.0, 0.05)
+
+
+        # ==================================
+        # EVENTS
+        # ==================================
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+                elif event.key == pygame.K_LEFT:
+                    direction = -1
+
+                elif event.key == pygame.K_RIGHT:
+                    direction = 1
+
+                elif event.key == pygame.K_p:
+                    paused = not paused
+
+            if event.type == pygame.KEYUP:
+
+                if event.key in (
+                    pygame.K_LEFT,
+                    pygame.K_RIGHT
+                ):
+                    keys = pygame.key.get_pressed()
+
+                    if keys[pygame.K_LEFT]:
+                        direction = -1
+                    elif keys[pygame.K_RIGHT]:
+                        direction = 1
+                    else:
+                        direction = 0
+
+        if not running:
+            break
+
+        if paused:
+            pause_text = font_large.render(
+                "PAUSED", True, CYAN
+            )
+
+            screen.fill(BLACK)
+
+            screen.blit(
+                pause_text,
+                (
+                    WIDTH // 2 - pause_text.get_width() // 2,
+                    HEIGHT // 2 - 20
+                )
+            )
+
+            pygame.display.flip()
+            continue
+
+        # ==================================
+        # TIMERS
+        # ==================================
+        if expand_timer > 0:
+
+            expand_timer = max(0, expand_timer - dt)
+
+            if expand_timer == 0:
+                striker.resize(110)
+
+        if fire_timer > 0:
+
+            fire_timer = max(0, fire_timer - dt)
+
+            if fire_timer == 0:
+
+                for ball in balls:
+                    ball.is_fire = False
+
+        # ==================================
+        # LEVEL UP
+        # ==================================
+        if not blocks:
+
+            level += 1
+
+            blocks = populateBlocks()
+
+            balls = [
+                Ball(
+                    WIDTH // 2,
+                    HEIGHT // 2,
+                    min(300 + (level - 1) * 25, 520)
+                )
+            ]
+
+            powerups.clear()
+
+            fire_timer = 0
+            expand_timer = 0
+            striker.resize(110)
+
+        # ==================================
+        # STRIKER
+        # ==================================
+        striker.update(direction, dt)
+
+        # ==================================
+        # POWER UPS
+        # ==================================
+        for p in powerups[:]:
+
+            p.update(dt)
+
+            if striker.rect.colliderect(p.rect):
+
+                if p.type == "expand":
+                    striker.resize(160)
+                    expand_timer = 10.0
+
+                elif p.type == "multiball":
+
+                    original_balls = balls[:]
+
+                    for b in original_balls:
+
+                        if len(balls) >= MAX_BALLS:
+                            break
+
+                        new_ball = Ball(
+                            b.posx,
+                            b.posy,
+                            b.speed
+                        )
+
+                        new_ball.xFac = -b.xFac
+                        new_ball.yFac = b.yFac
+                        new_ball.is_fire = b.is_fire
+
+                        balls.append(new_ball)
+
+                elif p.type == "life":
+
+                    if lives < MAX_LIVES:
+                        lives += 1
+
+                elif p.type == "fire":
+
+                    for b in balls:
+                        b.is_fire = True
+
+                    fire_timer = 7.0
+
+                powerups.remove(p)
+
+            elif p.y > HEIGHT:
+                powerups.remove(p)
+
+        # ==================================
+        # BALL MOVEMENT AND COLLISION
+        # ==================================
+        for ball in balls[:]:
+
+            max_distance = ball.speed * dt
+
+            steps = max(
+                1,
+                math.ceil(max_distance / 4)
+            )
+
+            step_dt = dt / steps
+
+            lost = False
+
+            for _ in range(steps):
+
+                previous = ball.rect.copy()
+
+                dx = ball.xFac * ball.speed * step_dt
+                dy = ball.yFac * ball.speed * step_dt
+
+                # Horizontal movement
+                ball.posx += dx
+
+                if ball.posx <= ball.radius:
+                    ball.posx = ball.radius
+                    ball.xFac = abs(ball.xFac)
+
+                elif ball.posx >= WIDTH - ball.radius:
+                    ball.posx = WIDTH - ball.radius
+                    ball.xFac = -abs(ball.xFac)
+
+                # Vertical movement
+                ball.posy += dy
+
+                if ball.posy <= ball.radius:
+                    ball.posy = ball.radius
+                    ball.yFac = abs(ball.yFac)
+
+                ball.update_rect()
+
+                # Ball lost
+                if ball.posy - ball.radius > HEIGHT:
+                    lost = True
+                    break
+
+                # Paddle collision
+                if (
+                    ball.yFac > 0
+                    and ball.rect.colliderect(striker.rect)
+                    and previous.bottom <= striker.rect.top + 5
+                ):
+
+                    ball.posy = striker.posy - ball.radius
+
+                    offset = (
+                        ball.posx -
+                        (striker.posx + striker.width / 2)
+                    ) / (striker.width / 2)
+
+                    ball.xFac = max(
+                        -0.9,
+                        min(0.9, offset)
+                    )
+
+                    if abs(ball.xFac) < 0.12:
+                        ball.xFac = random.choice([-0.12, 0.12])
+
+                    ball.yFac = -math.sqrt(
+                        1 - ball.xFac ** 2
+                    )
+
+                    ball.update_rect()
+
+                # Block collision
+                for block in blocks[:]:
+
+                    if not ball.rect.colliderect(block.rect):
+                        continue
+
+                    if not ball.is_fire:
+
+                        if (
+                            previous.bottom <= block.rect.top
+                            and ball.yFac > 0
+                        ):
+
+                            ball.posy = block.rect.top - ball.radius
+                            ball.yFac = -abs(ball.yFac)
+
+                        elif (
+                            previous.top >= block.rect.bottom
+                            and ball.yFac < 0
+                        ):
+
+                            ball.posy = block.rect.bottom + ball.radius
+                            ball.yFac = abs(ball.yFac)
+
+                        elif (
+                            previous.right <= block.rect.left
+                            and ball.xFac > 0
+                        ):
+
+                            ball.posx = block.rect.left - ball.radius
+                            ball.xFac = -abs(ball.xFac)
+
+                        elif (
+                            previous.left >= block.rect.right
+                            and ball.xFac < 0
+                        ):
+
+                            ball.posx = block.rect.right + ball.radius
+                            ball.xFac = abs(ball.xFac)
+
+                        else:
+                            ball.yFac *= -1
+
+                        block.hit()
+
+                    else:
+                        block.health = 0
+
+                    ball.update_rect()
+
+                    if block.health <= 0:
+
+                        create_particles(
+                            particles,
+                            block.posx + block.width // 2,
+                            block.posy + block.height // 2,
+                            block.color
+                        )
+
+                        if block.is_life_block:
+
+                            spawn_powerup(
+                                powerups,
+                                block.posx + 9,
+                                block.posy,
+                                "life"
+                            )
+
+                        elif random.random() < 0.25:
+
+                            p_type = random.choice([
+                                "expand",
+                                "multiball",
+                                "fire"
+                            ])
+
+                            spawn_powerup(
+                                powerups,
+                                block.posx + 9,
+                                block.posy,
+                                p_type
+                            )
+
+                        blocks.remove(block)
+
+                        score += 40 * level
+
+                    break
+
+            if lost:
+                balls.remove(ball)
