@@ -359,3 +359,106 @@ def spawn_powerup(powerups, x, y, p_type):
         return
 
     powerups.append(PowerUp(x, y, p_type))
+
+
+# ==========================================
+# 9. GAME OVER
+# ==========================================
+def gameOverScreen(score, level):
+    while True:
+        screen.fill(BLACK)
+
+        title = font_large.render(
+            "GAME OVER", True, RED
+        )
+
+        score_text = font.render(
+            f"Final Score: {score}", True, WHITE
+        )
+
+        level_text = font.render(
+            f"Level Reached: {level}", True, GOLD
+        )
+
+        restart = font.render(
+            "SPACE: PLAY AGAIN", True, CYAN
+        )
+
+        exit_text = font.render(
+            "ESC: EXIT", True, WHITE
+        )
+
+        screen.blit(
+            title,
+            (WIDTH // 2 - title.get_width() // 2, 145)
+        )
+
+        screen.blit(
+            score_text,
+            (WIDTH // 2 - score_text.get_width() // 2, 215)
+        )
+
+        screen.blit(
+            level_text,
+            (WIDTH // 2 - level_text.get_width() // 2, 245)
+        )
+
+        screen.blit(
+            restart,
+            (WIDTH // 2 - restart.get_width() // 2, 310)
+        )
+
+        screen.blit(
+            exit_text,
+            (WIDTH // 2 - exit_text.get_width() // 2, 340)
+        )
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                return False
+
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_SPACE:
+                    return True
+
+                if event.key == pygame.K_ESCAPE:
+                    return False
+
+        clock.tick(FPS)
+
+
+# ==========================================
+# 10. MAIN GAME
+# ==========================================
+def main():
+
+    lives = INITIAL_LIVES
+    score = 0
+    level = 1
+
+    striker = Striker()
+
+    balls = [
+        Ball(WIDTH // 2, HEIGHT // 2, 300)
+    ]
+
+    blocks = populateBlocks()
+
+    particles = []
+    powerups = []
+
+    expand_timer = 0.0
+    fire_timer = 0.0
+
+    direction = 0
+    paused = False
+
+    running = True
+
+    while running:
+
+        dt = min(clock.tick(FPS) / 1000.0, 0.05)
