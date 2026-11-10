@@ -1,4 +1,3 @@
-
 import pygame
 import random
 import math
@@ -132,7 +131,10 @@ class PowerUp:
 
         label = font.render(symbol, True, WHITE)
 
-        screen.blit(label, (self.x + 9, self.y + 1))
+        screen.blit(
+            label,
+            (self.x + 9, self.y + 1)
+        )
 
 
 # ==========================================
@@ -263,11 +265,19 @@ class Block:
 
         if self.is_life_block:
             label = font.render("♥", True, WHITE)
-            screen.blit(label, (self.posx + 17, self.posy - 1))
+
+            screen.blit(
+                label,
+                (self.posx + 17, self.posy - 1)
+            )
 
         elif self.health > 100:
             label = font.render("2X", True, WHITE)
-            screen.blit(label, (self.posx + 15, self.posy))
+
+            screen.blit(
+                label,
+                (self.posx + 15, self.posy)
+            )
 
 
 # ==========================================
@@ -329,6 +339,7 @@ def populateBlocks():
         for y in range(45, 190, 30)
     ]
 
+    # Exactly two heart blocks per level
     heart_positions = set(
         random.sample(positions, MAX_HEART_BLOCKS)
     )
@@ -358,7 +369,9 @@ def spawn_powerup(powerups, x, y, p_type):
     if len(powerups) >= MAX_POWERUPS:
         return
 
-    powerups.append(PowerUp(x, y, p_type))
+    powerups.append(
+        PowerUp(x, y, p_type)
+    )
 
 
 # ==========================================
@@ -461,8 +474,8 @@ def main():
 
     while running:
 
+        # Delta time prevents speed depending on FPS
         dt = min(clock.tick(FPS) / 1000.0, 0.05)
-
 
         # ==================================
         # EVENTS
@@ -579,6 +592,7 @@ def main():
             if striker.rect.colliderect(p.rect):
 
                 if p.type == "expand":
+
                     striker.resize(160)
                     expand_timer = 10.0
 
@@ -625,6 +639,7 @@ def main():
         # ==================================
         for ball in balls[:]:
 
+            # Substeps prevent fast balls passing through blocks
             max_distance = ball.speed * dt
 
             steps = max(
@@ -647,10 +662,12 @@ def main():
                 ball.posx += dx
 
                 if ball.posx <= ball.radius:
+
                     ball.posx = ball.radius
                     ball.xFac = abs(ball.xFac)
 
                 elif ball.posx >= WIDTH - ball.radius:
+
                     ball.posx = WIDTH - ball.radius
                     ball.xFac = -abs(ball.xFac)
 
@@ -658,6 +675,7 @@ def main():
                 ball.posy += dy
 
                 if ball.posy <= ball.radius:
+
                     ball.posy = ball.radius
                     ball.yFac = abs(ball.yFac)
 
@@ -665,6 +683,7 @@ def main():
 
                 # Ball lost
                 if ball.posy - ball.radius > HEIGHT:
+
                     lost = True
                     break
 
@@ -704,12 +723,16 @@ def main():
 
                     if not ball.is_fire:
 
+                        # Determine impact side
                         if (
                             previous.bottom <= block.rect.top
                             and ball.yFac > 0
                         ):
 
-                            ball.posy = block.rect.top - ball.radius
+                            ball.posy = (
+                                block.rect.top - ball.radius
+                            )
+
                             ball.yFac = -abs(ball.yFac)
 
                         elif (
@@ -717,7 +740,10 @@ def main():
                             and ball.yFac < 0
                         ):
 
-                            ball.posy = block.rect.bottom + ball.radius
+                            ball.posy = (
+                                block.rect.bottom + ball.radius
+                            )
+
                             ball.yFac = abs(ball.yFac)
 
                         elif (
@@ -725,7 +751,10 @@ def main():
                             and ball.xFac > 0
                         ):
 
-                            ball.posx = block.rect.left - ball.radius
+                            ball.posx = (
+                                block.rect.left - ball.radius
+                            )
+
                             ball.xFac = -abs(ball.xFac)
 
                         elif (
@@ -733,7 +762,10 @@ def main():
                             and ball.xFac < 0
                         ):
 
-                            ball.posx = block.rect.right + ball.radius
+                            ball.posx = (
+                                block.rect.right + ball.radius
+                            )
+
                             ball.xFac = abs(ball.xFac)
 
                         else:
@@ -742,6 +774,7 @@ def main():
                         block.hit()
 
                     else:
+                        # Fireball destroys instantly
                         block.health = 0
 
                     ball.update_rect()
@@ -783,6 +816,7 @@ def main():
 
                         score += 40 * level
 
+                    # One collision per substep
                     break
 
             if lost:
